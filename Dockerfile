@@ -13,7 +13,9 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates sqlite3 \
   && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -r -s /bin/false appuser
+RUN useradd -r -s /bin/false appuser && \
+    mkdir -p /home/appuser/data && \
+    chown appuser /home/appuser/data
 
 WORKDIR /app
 
@@ -21,7 +23,7 @@ COPY --from=builder /app/target/release/projects-service /usr/local/bin/projects
 COPY --from=builder /app/migrations ./migrations
 
 ENV HOST=0.0.0.0
-ENV DATABASE_URL=sqlite:////tmp/projects.db
+ENV DATABASE_URL=sqlite:////home/appuser/data/projects.db
 
 USER appuser
 EXPOSE 8080
