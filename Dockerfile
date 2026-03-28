@@ -1,4 +1,4 @@
-FROM rust:1.90-bookworm AS builder
+FROM rust:latest AS builder
 
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
@@ -13,14 +13,17 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates sqlite3 \
   && rm -rf /var/lib/apt/lists/*
 
+RUN useradd -r -s /bin/false appuser
+
 WORKDIR /app
 
 COPY --from=builder /app/target/release/projects-service /usr/local/bin/projects-service
 COPY --from=builder /app/migrations ./migrations
 
 ENV HOST=0.0.0.0
-ENV DATABASE_URL=sqlite:///data/projects.db
+ENV DATABASE_URL=sqlite:////tmp/projects.db
 
-EXPOSE 3001
+USER appuser
+EXPOSE 8080
 
-CMD ["sh", "-c", "mkdir -p /data && touch /data/projects.db && projects-service"]
+CMD ["/usr/local/bin/projects-service"]
