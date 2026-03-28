@@ -74,16 +74,23 @@ jobs:
             --image "$IMAGE" \
             --region "${{ env.GCP_REGION }}" \
             --platform managed \
-            --allow-unauthenticated \
-            --port 3001 \
+            --port 8080 \
             --memory 512Mi \
             --cpu 1 \
             --min-instances 0 \
             --max-instances 2 \
             --service-account "${{ secrets.GCP_SERVICE_ACCOUNT }}" \
-            --set-env-vars "^#^HOST=0.0.0.0#PORT=3001#DATABASE_URL=sqlite:////tmp/projects.db#AUTH_ENFORCED=true#AUTH_JWT_ALGORITHM=HS256#AUTH_ISSUER=auth-service#ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}" \
+            --set-env-vars "^#^HOST=0.0.0.0#DATABASE_URL=sqlite:////tmp/projects.db#AUTH_ENFORCED=true#AUTH_JWT_ALGORITHM=HS256#AUTH_ISSUER=auth-service#ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}" \
             --set-secrets "AUTH_JWT_SECRET=AUTH_JWT_SECRET:latest" \
             --quiet
+
+      - name: Allow unauthenticated access
+        if: steps.config.outputs.enabled == 'true'
+        run: |
+          gcloud run services add-iam-policy-binding "${{ env.SERVICE_NAME }}" \
+            --region "${{ env.GCP_REGION }}" \
+            --member="allUsers" \
+            --role="roles/run.invoker"
 
       - name: Health check
         if: steps.config.outputs.enabled == 'true'

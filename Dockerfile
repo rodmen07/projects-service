@@ -19,7 +19,6 @@ COPY --from=builder /app/target/release/projects-service /usr/local/bin/projects
 COPY --from=builder /app/migrations ./migrations
 
 ENV HOST=0.0.0.0
-ENV PORT=3001
 ENV DATABASE_URL=sqlite:///data/projects.db
 
 EXPOSE 3001
