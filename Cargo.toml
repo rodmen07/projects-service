@@ -23,5 +23,3 @@ tower = { version = "0.5", features = ["util"] }
 [profile.release]
 lto = true
 codegen-units = 1
-strip = true
-panic = "abort"
