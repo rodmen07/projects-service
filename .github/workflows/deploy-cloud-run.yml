@@ -70,6 +70,7 @@ jobs:
       - name: Deploy to Cloud Run
         if: steps.config.outputs.enabled == 'true'
         run: |
+          # Best effort: first deploy may not have an existing service/secret yet.
           gcloud run services update "${{ env.SERVICE_NAME }}" \
             --region "${{ env.GCP_REGION }}" \
             --remove-secrets "DATABASE_URL" \
