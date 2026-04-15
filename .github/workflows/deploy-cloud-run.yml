@@ -80,6 +80,7 @@ jobs:
             --min-instances 0 \
             --max-instances 2 \
             --service-account "${{ secrets.GCP_SERVICE_ACCOUNT }}" \
+            --remove-secrets "DATABASE_URL" \
             --set-env-vars "^#^HOST=0.0.0.0#DATABASE_URL=sqlite:////tmp/projects.db?mode=rwc#AUTH_ENFORCED=true#AUTH_JWT_ALGORITHM=HS256#AUTH_ISSUER=auth-service#ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}" \
             --set-secrets "AUTH_JWT_SECRET=AUTH_JWT_SECRET:latest" \
             --quiet
