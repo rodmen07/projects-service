@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 COPY --from=builder /app/target/release/projects-service /usr/local/bin/projects-service
 COPY --from=builder /app/migrations ./migrations
-RUN useradd -r -s /bin/false appuser && mkdir -p /data && chown appuser /data
+RUN groupadd -g 999 appgroup && useradd -r -u 999 -g 999 -s /bin/false appuser && mkdir -p /data && chown -R 999:999 /data
 USER appuser
-EXPOSE 8080
+EXPOSE 3001
 CMD ["projects-service"]
