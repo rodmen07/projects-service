@@ -12,6 +12,7 @@ pub struct Project {
     pub name: String,
     pub description: Option<String>,
     pub status: String,
+    pub budget: Option<f64>,
     pub start_date: Option<String>,
     pub target_end_date: Option<String>,
     pub created_at: String,
@@ -25,8 +26,54 @@ pub struct CreateProjectRequest {
     pub client_user_id: Option<String>,
     pub description: Option<String>,
     pub status: Option<String>,
+    pub budget: Option<f64>,
     pub start_date: Option<String>,
     pub target_end_date: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PatchProjectRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub status: Option<String>,
+    pub budget: Option<f64>,
+    pub client_user_id: Option<String>,
+    pub start_date: Option<String>,
+    pub target_end_date: Option<String>,
+}
+
+// --- Collaborator ---
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct Collaborator {
+    pub id: String,
+    pub project_id: String,
+    pub name: String,
+    pub role: String,
+    pub avatar_url: Option<String>,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateCollaboratorRequest {
+    pub name: String,
+    pub role: Option<String>,
+    pub avatar_url: Option<String>,
+}
+
+// --- ProgressUpdate ---
+
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct ProgressUpdate {
+    pub id: String,
+    pub project_id: String,
+    pub content: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateProgressUpdateRequest {
+    pub content: String,
 }
 
 // --- Milestone ---

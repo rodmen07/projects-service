@@ -14,8 +14,9 @@ use tower_http::{cors::{Any, CorsLayer}, trace::TraceLayer};
 use crate::app_state::AppState;
 use crate::auth::{AUTH_HEADER, auth_enforced, validate_authorization_header};
 use crate::handlers::{
-    create_deliverable, create_message, create_milestone, create_project,
-    health, list_deliverables, list_messages, list_milestones, list_projects, ready,
+    create_collaborator, create_deliverable, create_message, create_milestone, create_progress_update,
+    create_project, get_project, health, list_collaborators, list_deliverables, list_messages,
+    list_milestones, list_progress_updates, list_projects, patch_project, ready,
 };
 use crate::models::ApiError;
 use crate::rate_limit::rate_limit_middleware;
@@ -24,16 +25,22 @@ pub fn build_router(state: AppState) -> Router {
     // Admin-only write routes
     let admin_routes = Router::new()
         .route("/api/v1/projects", post(create_project))
+        .route("/api/v1/projects/{id}", axum::routing::patch(patch_project))
         .route("/api/v1/projects/{id}/milestones", post(create_milestone))
         .route("/api/v1/milestones/{id}/deliverables", post(create_deliverable))
+        .route("/api/v1/projects/{id}/collaborators", post(create_collaborator))
+        .route("/api/v1/projects/{id}/progress-updates", post(create_progress_update))
         .layer(from_fn(require_admin));
 
     // Auth-required routes (client + admin reads, message sends)
     let protected_routes = Router::new()
         .route("/api/v1/projects", get(list_projects))
+        .route("/api/v1/projects/{id}", get(get_project))
         .route("/api/v1/projects/{id}/milestones", get(list_milestones))
         .route("/api/v1/milestones/{id}/deliverables", get(list_deliverables))
         .route("/api/v1/projects/{id}/messages", get(list_messages).post(create_message))
+        .route("/api/v1/projects/{id}/collaborators", get(list_collaborators))
+        .route("/api/v1/projects/{id}/progress-updates", get(list_progress_updates))
         .merge(admin_routes)
         .layer(from_fn(require_auth));
 

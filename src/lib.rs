@@ -1,15 +1,15 @@
 #[path = "lib/app_state.rs"]
-mod app_state;
+pub mod app_state;
 #[path = "lib/auth.rs"]
-mod auth;
+pub mod auth;
 #[path = "lib/handlers/mod.rs"]
-mod handlers;
+pub(crate) mod handlers;
 #[path = "lib/models.rs"]
-mod models;
+pub mod models;
 #[path = "lib/rate_limit.rs"]
-mod rate_limit;
+pub(crate) mod rate_limit;
 #[path = "lib/router.rs"]
-mod router;
+pub mod router;
 
 pub use app_state::AppState;
 pub use router::build_router;
