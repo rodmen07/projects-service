@@ -31,10 +31,17 @@ struct Bucket {
 static BUCKETS: LazyLock<Mutex<HashMap<String, Bucket>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
-fn check_bucket(map: &mut HashMap<String, Bucket>, key: &str, max: usize, window: Duration) -> bool {
+fn check_bucket(
+    map: &mut HashMap<String, Bucket>,
+    key: &str,
+    max: usize,
+    window: Duration,
+) -> bool {
     let now = Instant::now();
     let cutoff = now - window;
-    let bucket = map.entry(key.to_owned()).or_insert_with(|| Bucket { timestamps: Vec::new() });
+    let bucket = map.entry(key.to_owned()).or_insert_with(|| Bucket {
+        timestamps: Vec::new(),
+    });
     bucket.timestamps.retain(|t| *t > cutoff);
     if bucket.timestamps.len() >= max {
         return false;
@@ -45,7 +52,12 @@ fn check_bucket(map: &mut HashMap<String, Bucket>, key: &str, max: usize, window
 
 fn is_allowed(key: &str) -> bool {
     let mut map = BUCKETS.lock().unwrap_or_else(|e| e.into_inner());
-    check_bucket(&mut map, key, *MAX_REQUESTS, Duration::from_secs(*WINDOW_SECS))
+    check_bucket(
+        &mut map,
+        key,
+        *MAX_REQUESTS,
+        Duration::from_secs(*WINDOW_SECS),
+    )
 }
 
 pub fn client_ip(request: &Request) -> String {

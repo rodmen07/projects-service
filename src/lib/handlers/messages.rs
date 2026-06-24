@@ -18,14 +18,18 @@ async fn assert_project_access(
     claims: &AuthClaims,
 ) -> Result<String, Response> {
     if claims.is_admin() {
-        let exists: bool =
-            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE id = ?)")
-                .bind(project_id)
-                .fetch_one(pool)
-                .await
-                .unwrap_or(false);
+        let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE id = ?)")
+            .bind(project_id)
+            .fetch_one(pool)
+            .await
+            .unwrap_or(false);
         if !exists {
-            return Err(error_response(StatusCode::NOT_FOUND, "PROJECT_NOT_FOUND", "project not found", None));
+            return Err(error_response(
+                StatusCode::NOT_FOUND,
+                "PROJECT_NOT_FOUND",
+                "project not found",
+                None,
+            ));
         }
         Ok("admin".to_string())
     } else {
@@ -38,7 +42,12 @@ async fn assert_project_access(
         .await
         .unwrap_or(false);
         if !accessible {
-            return Err(error_response(StatusCode::NOT_FOUND, "PROJECT_NOT_FOUND", "project not found", None));
+            return Err(error_response(
+                StatusCode::NOT_FOUND,
+                "PROJECT_NOT_FOUND",
+                "project not found",
+                None,
+            ));
         }
         Ok("client".to_string())
     }

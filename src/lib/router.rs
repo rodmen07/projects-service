@@ -9,14 +9,18 @@ use axum::{
     routing::{get, post},
 };
 use serde_json::json;
-use tower_http::{cors::{Any, CorsLayer}, trace::TraceLayer};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace::TraceLayer,
+};
 
 use crate::app_state::AppState;
 use crate::auth::{AUTH_HEADER, auth_enforced, validate_authorization_header};
 use crate::handlers::{
-    create_collaborator, create_deliverable, create_message, create_milestone, create_progress_update,
-    create_project, get_project, health, list_collaborators, list_deliverables, list_messages,
-    list_milestones, list_progress_updates, list_projects, patch_project, ready,
+    create_collaborator, create_deliverable, create_message, create_milestone,
+    create_progress_update, create_project, get_project, health, list_collaborators,
+    list_deliverables, list_messages, list_milestones, list_progress_updates, list_projects,
+    patch_project, ready,
 };
 use crate::models::ApiError;
 use crate::rate_limit::rate_limit_middleware;
@@ -27,9 +31,18 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/v1/projects", post(create_project))
         .route("/api/v1/projects/{id}", axum::routing::patch(patch_project))
         .route("/api/v1/projects/{id}/milestones", post(create_milestone))
-        .route("/api/v1/milestones/{id}/deliverables", post(create_deliverable))
-        .route("/api/v1/projects/{id}/collaborators", post(create_collaborator))
-        .route("/api/v1/projects/{id}/progress-updates", post(create_progress_update))
+        .route(
+            "/api/v1/milestones/{id}/deliverables",
+            post(create_deliverable),
+        )
+        .route(
+            "/api/v1/projects/{id}/collaborators",
+            post(create_collaborator),
+        )
+        .route(
+            "/api/v1/projects/{id}/progress-updates",
+            post(create_progress_update),
+        )
         .layer(from_fn(require_admin));
 
     // Auth-required routes (client + admin reads, message sends)
@@ -37,10 +50,22 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/v1/projects", get(list_projects))
         .route("/api/v1/projects/{id}", get(get_project))
         .route("/api/v1/projects/{id}/milestones", get(list_milestones))
-        .route("/api/v1/milestones/{id}/deliverables", get(list_deliverables))
-        .route("/api/v1/projects/{id}/messages", get(list_messages).post(create_message))
-        .route("/api/v1/projects/{id}/collaborators", get(list_collaborators))
-        .route("/api/v1/projects/{id}/progress-updates", get(list_progress_updates))
+        .route(
+            "/api/v1/milestones/{id}/deliverables",
+            get(list_deliverables),
+        )
+        .route(
+            "/api/v1/projects/{id}/messages",
+            get(list_messages).post(create_message),
+        )
+        .route(
+            "/api/v1/projects/{id}/collaborators",
+            get(list_collaborators),
+        )
+        .route(
+            "/api/v1/projects/{id}/progress-updates",
+            get(list_progress_updates),
+        )
         .merge(admin_routes)
         .layer(from_fn(require_auth));
 
@@ -60,7 +85,10 @@ async fn require_auth(request: Request, next: Next) -> Response {
     if !auth_enforced() {
         return next.run(request).await;
     }
-    let header = request.headers().get(AUTH_HEADER).and_then(|v| v.to_str().ok());
+    let header = request
+        .headers()
+        .get(AUTH_HEADER)
+        .and_then(|v| v.to_str().ok());
     match validate_authorization_header(header) {
         Ok(claims) if !claims.sub.trim().is_empty() => next.run(request).await,
         Ok(_) => (
@@ -88,7 +116,10 @@ async fn require_admin(request: Request, next: Next) -> Response {
     if !auth_enforced() {
         return next.run(request).await;
     }
-    let header = request.headers().get(AUTH_HEADER).and_then(|v| v.to_str().ok());
+    let header = request
+        .headers()
+        .get(AUTH_HEADER)
+        .and_then(|v| v.to_str().ok());
     match validate_authorization_header(header) {
         Ok(claims) if claims.is_admin() => next.run(request).await,
         Ok(_) => (
@@ -165,12 +196,24 @@ fn build_cors_layer() -> CorsLayer {
 
     if origins.is_empty() {
         return CorsLayer::new()
-            .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE, Method::OPTIONS])
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PATCH,
+                Method::DELETE,
+                Method::OPTIONS,
+            ])
             .allow_headers(Any);
     }
 
     CorsLayer::new()
         .allow_origin(origins)
-        .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE, Method::OPTIONS])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
         .allow_headers(Any)
 }

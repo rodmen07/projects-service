@@ -25,7 +25,12 @@ async fn assert_milestone_access(
                 .await
                 .unwrap_or(false);
         if !exists {
-            return Err(error_response(StatusCode::NOT_FOUND, "MILESTONE_NOT_FOUND", "milestone not found", None));
+            return Err(error_response(
+                StatusCode::NOT_FOUND,
+                "MILESTONE_NOT_FOUND",
+                "milestone not found",
+                None,
+            ));
         }
     } else {
         let accessible: bool = sqlx::query_scalar(
@@ -41,7 +46,12 @@ async fn assert_milestone_access(
         .await
         .unwrap_or(false);
         if !accessible {
-            return Err(error_response(StatusCode::NOT_FOUND, "MILESTONE_NOT_FOUND", "milestone not found", None));
+            return Err(error_response(
+                StatusCode::NOT_FOUND,
+                "MILESTONE_NOT_FOUND",
+                "milestone not found",
+                None,
+            ));
         }
     }
     Ok(())
@@ -79,14 +89,18 @@ pub(crate) async fn create_deliverable(
     State(state): State<AppState>,
     Json(payload): Json<CreateDeliverableRequest>,
 ) -> Response {
-    let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM milestones WHERE id = ?)")
-            .bind(&milestone_id)
-            .fetch_one(&state.pool)
-            .await
-            .unwrap_or(false);
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM milestones WHERE id = ?)")
+        .bind(&milestone_id)
+        .fetch_one(&state.pool)
+        .await
+        .unwrap_or(false);
     if !exists {
-        return error_response(StatusCode::NOT_FOUND, "MILESTONE_NOT_FOUND", "milestone not found", None);
+        return error_response(
+            StatusCode::NOT_FOUND,
+            "MILESTONE_NOT_FOUND",
+            "milestone not found",
+            None,
+        );
     }
 
     let name = payload.name.trim().to_string();
@@ -101,7 +115,12 @@ pub(crate) async fn create_deliverable(
 
     let id = Uuid::new_v4().to_string();
     let status = payload.status.as_deref().unwrap_or("pending").to_string();
-    let description = payload.description.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(ToOwned::to_owned);
+    let description = payload
+        .description
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned);
 
     if sqlx::query(
         "INSERT INTO deliverables (id, milestone_id, name, description, status) VALUES (?, ?, ?, ?, ?)",

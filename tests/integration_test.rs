@@ -189,7 +189,10 @@ async fn test_crewassist_full_project_lifecycle() {
     // ── 5. Get single project ─────────────────────────────────────────────
     let resp = app
         .clone()
-        .oneshot(get_req(&format!("/api/v1/projects/{project_id}"), &ryan_jwt))
+        .oneshot(get_req(
+            &format!("/api/v1/projects/{project_id}"),
+            &ryan_jwt,
+        ))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
@@ -216,7 +219,10 @@ async fn test_crewassist_full_project_lifecycle() {
     let other_jwt = make_jwt("other-client-99999", &["client"]);
     let resp = app
         .clone()
-        .oneshot(get_req(&format!("/api/v1/projects/{project_id}"), &other_jwt))
+        .oneshot(get_req(
+            &format!("/api/v1/projects/{project_id}"),
+            &other_jwt,
+        ))
         .await
         .unwrap();
     assert_eq!(resp.status(), StatusCode::FORBIDDEN);
@@ -236,7 +242,11 @@ async fn test_crewassist_full_project_lifecycle() {
         ))
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::CREATED, "add collaborator failed");
+    assert_eq!(
+        resp.status(),
+        StatusCode::CREATED,
+        "add collaborator failed"
+    );
     let collab = body_json(resp).await;
     assert_eq!(collab["name"], "Ryan Chyler Thomas");
     assert_eq!(collab["role"], "Product Owner");
@@ -267,12 +277,18 @@ async fn test_crewassist_full_project_lifecycle() {
         ))
         .await
         .unwrap();
-    assert_eq!(resp.status(), StatusCode::CREATED, "add progress update failed");
+    assert_eq!(
+        resp.status(),
+        StatusCode::CREATED,
+        "add progress update failed"
+    );
     let update = body_json(resp).await;
-    assert!(update["content"]
-        .as_str()
-        .unwrap()
-        .contains("Completed schedule parsing"));
+    assert!(
+        update["content"]
+            .as_str()
+            .unwrap()
+            .contains("Completed schedule parsing")
+    );
 
     // ── 11. Ryan reads progress updates ───────────────────────────────────
     let resp = app
@@ -301,10 +317,7 @@ async fn test_crewassist_full_project_lifecycle() {
     assert_eq!(resp.status(), StatusCode::CREATED, "send message failed");
     let msg = body_json(resp).await;
     assert_eq!(msg["author_id"], ryan_id);
-    assert!(msg["body"]
-        .as_str()
-        .unwrap()
-        .contains("push notifications"));
+    assert!(msg["body"].as_str().unwrap().contains("push notifications"));
 
     // ── 13. Message appears in thread ─────────────────────────────────────
     let resp = app

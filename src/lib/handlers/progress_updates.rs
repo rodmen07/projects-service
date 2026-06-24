@@ -1,4 +1,9 @@
-use axum::{Json, extract::{Path, State}, http::StatusCode, response::{IntoResponse, Response}};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use uuid::Uuid;
 
 use crate::app_state::AppState;
@@ -7,7 +12,11 @@ use crate::models::{CreateProgressUpdateRequest, ProgressUpdate};
 
 use super::error_response;
 
-async fn project_accessible(pool: &sqlx::SqlitePool, project_id: &str, claims: &AuthClaims) -> Result<(), Response> {
+async fn project_accessible(
+    pool: &sqlx::SqlitePool,
+    project_id: &str,
+    claims: &AuthClaims,
+) -> Result<(), Response> {
     let row = sqlx::query_as::<_, (String, Option<String>)>(
         "SELECT id, client_user_id FROM projects WHERE id = ?",
     )
@@ -18,17 +27,31 @@ async fn project_accessible(pool: &sqlx::SqlitePool, project_id: &str, claims: &
     match row {
         Ok(Some((_, client_user_id))) => {
             if !claims.is_admin() && client_user_id.as_deref() != Some(&claims.sub) {
-                Err(error_response(StatusCode::FORBIDDEN, "ACCESS_DENIED", "access denied", None).into_response())
+                Err(error_response(
+                    StatusCode::FORBIDDEN,
+                    "ACCESS_DENIED",
+                    "access denied",
+                    None,
+                )
+                .into_response())
             } else {
                 Ok(())
             }
         }
-        Ok(None) => Err(
-            error_response(StatusCode::NOT_FOUND, "PROJECT_NOT_FOUND", "project not found", None).into_response()
-        ),
-        Err(_) => Err(
-            error_response(StatusCode::INTERNAL_SERVER_ERROR, "DB_ERROR", "database error", None).into_response()
-        ),
+        Ok(None) => Err(error_response(
+            StatusCode::NOT_FOUND,
+            "PROJECT_NOT_FOUND",
+            "project not found",
+            None,
+        )
+        .into_response()),
+        Err(_) => Err(error_response(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "DB_ERROR",
+            "database error",
+            None,
+        )
+        .into_response()),
     }
 }
 
@@ -84,20 +107,24 @@ pub(crate) async fn create_progress_update(
         .fetch_one(&state.pool)
         .await;
     if matches!(exists, Ok(0) | Err(_)) {
-        return error_response(StatusCode::NOT_FOUND, "PROJECT_NOT_FOUND", "project not found", None)
-            .into_response();
+        return error_response(
+            StatusCode::NOT_FOUND,
+            "PROJECT_NOT_FOUND",
+            "project not found",
+            None,
+        )
+        .into_response();
     }
 
     let id = Uuid::new_v4().to_string();
 
-    let insert = sqlx::query(
-        "INSERT INTO progress_updates (id, project_id, content) VALUES (?, ?, ?)",
-    )
-    .bind(&id)
-    .bind(&project_id)
-    .bind(&content)
-    .execute(&state.pool)
-    .await;
+    let insert =
+        sqlx::query("INSERT INTO progress_updates (id, project_id, content) VALUES (?, ?, ?)")
+            .bind(&id)
+            .bind(&project_id)
+            .bind(&content)
+            .execute(&state.pool)
+            .await;
 
     if insert.is_err() {
         return error_response(

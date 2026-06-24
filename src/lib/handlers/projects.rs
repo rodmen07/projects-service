@@ -1,4 +1,9 @@
-use axum::{Json, extract::{Path, State}, http::StatusCode, response::{IntoResponse, Response}};
+use axum::{
+    Json,
+    extract::{Path, State},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use uuid::Uuid;
 
 use crate::app_state::AppState;
@@ -7,25 +12,21 @@ use crate::models::{CreateProjectRequest, PatchProjectRequest, Project};
 
 use super::error_response;
 
-const PROJECT_COLS: &str =
-    "id, account_id, client_user_id, name, description, status, budget, \
+const PROJECT_COLS: &str = "id, account_id, client_user_id, name, description, status, budget, \
      start_date, target_end_date, created_at, updated_at";
 
 /// List projects. Admins see all; clients see only their own.
-pub(crate) async fn list_projects(
-    State(state): State<AppState>,
-    claims: AuthClaims,
-) -> Response {
+pub(crate) async fn list_projects(State(state): State<AppState>, claims: AuthClaims) -> Response {
     let result = if claims.is_admin() {
-        sqlx::query_as::<_, Project>(
-            &format!("SELECT {PROJECT_COLS} FROM projects ORDER BY created_at DESC"),
-        )
+        sqlx::query_as::<_, Project>(&format!(
+            "SELECT {PROJECT_COLS} FROM projects ORDER BY created_at DESC"
+        ))
         .fetch_all(&state.pool)
         .await
     } else {
-        sqlx::query_as::<_, Project>(
-            &format!("SELECT {PROJECT_COLS} FROM projects WHERE client_user_id = ? ORDER BY created_at DESC"),
-        )
+        sqlx::query_as::<_, Project>(&format!(
+            "SELECT {PROJECT_COLS} FROM projects WHERE client_user_id = ? ORDER BY created_at DESC"
+        ))
         .bind(&claims.sub)
         .fetch_all(&state.pool)
         .await
@@ -49,23 +50,32 @@ pub(crate) async fn get_project(
     Path(id): Path<String>,
     claims: AuthClaims,
 ) -> Response {
-    let result = sqlx::query_as::<_, Project>(
-        &format!("SELECT {PROJECT_COLS} FROM projects WHERE id = ?"),
-    )
-    .bind(&id)
-    .fetch_optional(&state.pool)
-    .await;
+    let result =
+        sqlx::query_as::<_, Project>(&format!("SELECT {PROJECT_COLS} FROM projects WHERE id = ?"))
+            .bind(&id)
+            .fetch_optional(&state.pool)
+            .await;
 
     match result {
         Ok(Some(project)) => {
             if !claims.is_admin() && project.client_user_id.as_deref() != Some(&claims.sub) {
-                return error_response(StatusCode::FORBIDDEN, "ACCESS_DENIED", "access denied", None)
-                    .into_response();
+                return error_response(
+                    StatusCode::FORBIDDEN,
+                    "ACCESS_DENIED",
+                    "access denied",
+                    None,
+                )
+                .into_response();
             }
             Json(project).into_response()
         }
-        Ok(None) => error_response(StatusCode::NOT_FOUND, "PROJECT_NOT_FOUND", "project not found", None)
-            .into_response(),
+        Ok(None) => error_response(
+            StatusCode::NOT_FOUND,
+            "PROJECT_NOT_FOUND",
+            "project not found",
+            None,
+        )
+        .into_response(),
         Err(_) => error_response(
             StatusCode::INTERNAL_SERVER_ERROR,
             "DB_GET_PROJECT_FAILED",
@@ -90,8 +100,13 @@ pub(crate) async fn patch_project(
 
     match exists {
         Ok(0) => {
-            return error_response(StatusCode::NOT_FOUND, "PROJECT_NOT_FOUND", "project not found", None)
-                .into_response();
+            return error_response(
+                StatusCode::NOT_FOUND,
+                "PROJECT_NOT_FOUND",
+                "project not found",
+                None,
+            )
+            .into_response();
         }
         Err(_) => {
             return error_response(
@@ -107,19 +122,33 @@ pub(crate) async fn patch_project(
 
     // Build SET clause dynamically from provided fields
     let mut sets: Vec<&str> = Vec::new();
-    if payload.name.is_some() { sets.push("name = ?"); }
-    if payload.description.is_some() { sets.push("description = ?"); }
-    if payload.status.is_some() { sets.push("status = ?"); }
-    if payload.budget.is_some() { sets.push("budget = ?"); }
-    if payload.client_user_id.is_some() { sets.push("client_user_id = ?"); }
-    if payload.start_date.is_some() { sets.push("start_date = ?"); }
-    if payload.target_end_date.is_some() { sets.push("target_end_date = ?"); }
+    if payload.name.is_some() {
+        sets.push("name = ?");
+    }
+    if payload.description.is_some() {
+        sets.push("description = ?");
+    }
+    if payload.status.is_some() {
+        sets.push("status = ?");
+    }
+    if payload.budget.is_some() {
+        sets.push("budget = ?");
+    }
+    if payload.client_user_id.is_some() {
+        sets.push("client_user_id = ?");
+    }
+    if payload.start_date.is_some() {
+        sets.push("start_date = ?");
+    }
+    if payload.target_end_date.is_some() {
+        sets.push("target_end_date = ?");
+    }
 
     if sets.is_empty() {
         // No fields — just return the current project
-        return match sqlx::query_as::<_, Project>(
-            &format!("SELECT {PROJECT_COLS} FROM projects WHERE id = ?"),
-        )
+        return match sqlx::query_as::<_, Project>(&format!(
+            "SELECT {PROJECT_COLS} FROM projects WHERE id = ?"
+        ))
         .bind(&id)
         .fetch_one(&state.pool)
         .await
@@ -140,13 +169,27 @@ pub(crate) async fn patch_project(
     let sql = format!("UPDATE projects SET {set_clause} WHERE id = ?");
 
     let mut q = sqlx::query(&sql);
-    if let Some(v) = payload.name.as_deref() { q = q.bind(v.trim()); }
-    if let Some(v) = payload.description.as_deref() { q = q.bind(v.trim()); }
-    if let Some(v) = payload.status.as_deref() { q = q.bind(v.trim()); }
-    if let Some(v) = payload.budget { q = q.bind(v); }
-    if let Some(v) = payload.client_user_id.as_deref() { q = q.bind(v.trim()); }
-    if let Some(v) = payload.start_date.as_deref() { q = q.bind(v.trim()); }
-    if let Some(v) = payload.target_end_date.as_deref() { q = q.bind(v.trim()); }
+    if let Some(v) = payload.name.as_deref() {
+        q = q.bind(v.trim());
+    }
+    if let Some(v) = payload.description.as_deref() {
+        q = q.bind(v.trim());
+    }
+    if let Some(v) = payload.status.as_deref() {
+        q = q.bind(v.trim());
+    }
+    if let Some(v) = payload.budget {
+        q = q.bind(v);
+    }
+    if let Some(v) = payload.client_user_id.as_deref() {
+        q = q.bind(v.trim());
+    }
+    if let Some(v) = payload.start_date.as_deref() {
+        q = q.bind(v.trim());
+    }
+    if let Some(v) = payload.target_end_date.as_deref() {
+        q = q.bind(v.trim());
+    }
     q = q.bind(&id);
 
     if q.execute(&state.pool).await.is_err() {
@@ -159,12 +202,10 @@ pub(crate) async fn patch_project(
         .into_response();
     }
 
-    match sqlx::query_as::<_, Project>(
-        &format!("SELECT {PROJECT_COLS} FROM projects WHERE id = ?"),
-    )
-    .bind(&id)
-    .fetch_one(&state.pool)
-    .await
+    match sqlx::query_as::<_, Project>(&format!("SELECT {PROJECT_COLS} FROM projects WHERE id = ?"))
+        .bind(&id)
+        .fetch_one(&state.pool)
+        .await
     {
         Ok(project) => Json(project).into_response(),
         Err(_) => error_response(
@@ -206,10 +247,30 @@ pub(crate) async fn create_project(
 
     let id = Uuid::new_v4().to_string();
     let status = payload.status.as_deref().unwrap_or("planning").to_string();
-    let description = payload.description.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(ToOwned::to_owned);
-    let client_user_id = payload.client_user_id.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(ToOwned::to_owned);
-    let start_date = payload.start_date.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(ToOwned::to_owned);
-    let target_end_date = payload.target_end_date.as_deref().map(str::trim).filter(|s| !s.is_empty()).map(ToOwned::to_owned);
+    let description = payload
+        .description
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned);
+    let client_user_id = payload
+        .client_user_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned);
+    let start_date = payload
+        .start_date
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned);
+    let target_end_date = payload
+        .target_end_date
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(ToOwned::to_owned);
 
     let insert = sqlx::query(
         "INSERT INTO projects \
@@ -238,12 +299,10 @@ pub(crate) async fn create_project(
         .into_response();
     }
 
-    match sqlx::query_as::<_, Project>(
-        &format!("SELECT {PROJECT_COLS} FROM projects WHERE id = ?"),
-    )
-    .bind(&id)
-    .fetch_one(&state.pool)
-    .await
+    match sqlx::query_as::<_, Project>(&format!("SELECT {PROJECT_COLS} FROM projects WHERE id = ?"))
+        .bind(&id)
+        .fetch_one(&state.pool)
+        .await
     {
         Ok(project) => (StatusCode::CREATED, Json(project)).into_response(),
         Err(_) => error_response(

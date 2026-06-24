@@ -141,10 +141,7 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthClaims {
     type Rejection = (StatusCode, Json<ApiError>);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let header = parts
-            .headers
-            .get(AUTH_HEADER)
-            .and_then(|v| v.to_str().ok());
+        let header = parts.headers.get(AUTH_HEADER).and_then(|v| v.to_str().ok());
 
         match validate_authorization_header(header) {
             Ok(claims) => Ok(claims),

@@ -14,7 +14,11 @@ pub(crate) use milestones::{create_milestone, list_milestones};
 pub(crate) use progress_updates::{create_progress_update, list_progress_updates};
 pub(crate) use projects::{create_project, get_project, list_projects, patch_project};
 
-use axum::{Json, http::StatusCode, response::{IntoResponse, Response}};
+use axum::{
+    Json,
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use serde_json::Value;
 
 use crate::models::ApiError;

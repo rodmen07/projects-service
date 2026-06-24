@@ -12,7 +12,9 @@ pub(crate) async fn ready(State(state): State<AppState>) -> impl IntoResponse {
         Ok(_) => (StatusCode::OK, Json(HealthResponse { status: "ready" })).into_response(),
         Err(_) => (
             StatusCode::SERVICE_UNAVAILABLE,
-            Json(HealthResponse { status: "not ready" }),
+            Json(HealthResponse {
+                status: "not ready",
+            }),
         )
             .into_response(),
     }
